@@ -6,8 +6,7 @@ width/height attributes, so the original image file is never modified or
 recompressed (unlike resizing, which loses quality). Every change is
 reversible. It also supports auto-rescale on paste.
 
-**📥 Get it on AnkiWeb:** <https://ankiweb.net/shared/info/1258277333>
-(add-on code `1258277333`)
+AnkiWeb addon link: https://ankiweb.net/shared/info/1258277333
 
 ## Features
 
@@ -45,12 +44,12 @@ reversible. It also supports auto-rescale on paste.
 
 ## Installation
 
-### From AnkiWeb (recommended)
+### From AnkiWeb
 
-In Anki: **Tools → Add-ons → Get Add-ons…** and enter the code
-**`1258277333`**, or visit the listing:
-<https://ankiweb.net/shared/info/1258277333>. Anki keeps it updated
-automatically.
+AnkiWeb addon link: https://ankiweb.net/shared/info/1258277333
+
+In Anki: Tools → Add-ons → Get Add-ons… and enter the code 1258277333.
+Anki keeps it updated automatically.
 
 ### From a packaged build
 
