@@ -901,20 +901,47 @@ def on_editor_context_menu(web_view, menu):
 def _processMime_around(self, mime, extended=False, drop_event=False, _old=None):
     # Anki's EditorWebView._processMime returns (html, internal). The <img>
     # tag for a pasted image/screenshot/file is generated *inside* this call
-    # (clipboard image data has no HTML), so we must rewrite the produced
-    # HTML rather than the incoming clipboard mime.
+    # (clipboard image data has no HTML), so we rewrite the produced HTML
+    # rather than the incoming clipboard mime.
+    #
+    # Everything we add is wrapped so a failure here can never break a paste
+    # or be blamed for one — on any problem we hand back Anki's own result.
     result = _old(self, mime, extended, drop_event)
-    cfg = get_cfg()
-    if not cfg.get("auto_scale_on_paste"):
+    try:
+        cfg = get_cfg()
+        if not cfg.get("auto_scale_on_paste"):
+            return result
+        if not (isinstance(result, tuple) and len(result) == 2):
+            return result
+        html, internal = result
+
+        # Copying an image from a web page usually puts BOTH the page HTML
+        # (with a remote https:// <img src>) and the raw image bytes on the
+        # clipboard. Anki prefers the HTML and then tries to download the
+        # remote file — which many sites block with HTTP 403, leaving the
+        # image unfetched and unscaled. When the clipboard also carries the
+        # image bytes and the content is just that one remote image, use the
+        # bytes instead: Anki saves a local copy (no network, no 403) and the
+        # result scales reliably.
+        if not internal and html and mime.hasImage():
+            imgs = re.findall(r'<img\b[^>]*>', html, re.IGNORECASE)
+            text_only = re.sub(r'<[^>]+>', '', html).strip()
+            if (
+                len(imgs) == 1
+                and re.search(r'\bsrc="https?://', imgs[0], re.IGNORECASE)
+                and not text_only
+            ):
+                local = self._processImage(mime, extended)
+                if local:
+                    html, internal = local, True
+
+        if html and re.search(r'<img\b', html, re.IGNORECASE):
+            mode = cfg.get("auto_scale_mode", "width")
+            value = cfg["scale_width"] if mode == "width" else cfg["scale_height"]
+            html = stamp_all_imgs(html, mode, value)
+        return html, internal
+    except Exception:
         return result
-    if not (isinstance(result, tuple) and len(result) == 2):
-        return result
-    html, internal = result
-    if html and re.search(r'<img\b', html, re.IGNORECASE):
-        mode = cfg.get("auto_scale_mode", "width")
-        value = cfg["scale_width"] if mode == "width" else cfg["scale_height"]
-        html = stamp_all_imgs(html, mode, value)
-    return html, internal
 
 
 # ── Tools menu ─────────────────────────────────────────────────────────────────

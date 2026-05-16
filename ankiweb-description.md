@@ -25,7 +25,7 @@ automatically.
 - Right-click inside a field adds image-rescale options to the editor's
   context menu.
 - **Manual Rescale** dialog lets you type an exact width and/or height, with
-  an optional "remember these values" toggle.
+  an optional 'remember these values' toggle.
 - Auto-rescale on paste (toggleable, by width or height).
 - **Revert** strips the add-on's sizing and returns any image to its original
   display size, at any scope.
