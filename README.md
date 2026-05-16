@@ -30,7 +30,7 @@ defaults and a manual-entry dialog.
 │   ├── config.json  #   default settings
 │   ├── config.md    #   settings docs shown in Anki
 │   └── manifest.json#   add-on metadata
-├── build.sh         # package src/ into dist/*.ankiaddon
+├── build.sh         # package src/ into publications/*.ankiaddon
 ├── deploy.sh        # copy src/ into the local Anki addons folder for testing
 ├── LICENSE
 └── README.md
@@ -40,7 +40,7 @@ defaults and a manual-entry dialog.
 
 ### From a packaged build
 
-1. Build the add-on: `./build.sh` (produces `dist/anki-image-rescaler.ankiaddon`).
+1. Build the add-on: `./build.sh` (produces `publications/anki-image-rescaler.ankiaddon`).
 2. In Anki: **Tools → Add-ons → Install from file…** and select the
    `.ankiaddon` file.
 3. Restart Anki.
