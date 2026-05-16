@@ -1,24 +1,28 @@
 # Anki Image Rescaler
 
-An [Anki](https://apps.ankiweb.net/) add-on for granular, correctly-scoped image
-resizing directly in the note editor. Resize a single image, every image in a
-field, or every image in the whole note — by width or height, with sensible
-defaults and a manual-entry dialog.
+An [Anki](https://apps.ankiweb.net/) add-on that lets you rescale images in the
+note editor. Rescaling sets the display size via the `<img>` tag's
+width/height attributes, so the original image file is never modified or
+recompressed (unlike resizing, which loses quality). Every change is
+reversible. It also supports auto-rescale on paste.
 
 ## Features
 
-- **Three scopes:** resize the image at the cursor, all images in the current
-  field, or all images in the entire note.
-- **Toolbar buttons:** `Image Resize ▾` (full menu), plus dedicated
-  **Resize Image** / **Resize Field** / **Resize Card** buttons.
-  Left-click applies your default; right-click opens per-scope options.
-- **Manual Resize dialog:** enter an exact width and/or height, with an
+- **Three scopes for rescaling:** the image you clicked, every image in the
+  current field, or every image in every field of the note.
+- **Toolbar buttons:** `Image Rescale ▾` (full menu), plus dedicated
+  **Rescale Image** / **Rescale Field** / **Rescale Card** buttons.
+  Left-click applies your default size; right-click any button for per-scope
+  options (manual size, width-only, height-only, revert, settings).
+- **Right-click in a field:** image-rescale options are added to the editor's
+  context menu.
+- **Manual Rescale dialog:** enter an exact width and/or height, with an
   optional "remember these values" toggle.
-- **Auto-resize on paste:** pasted images are resized automatically
-  (toggleable).
-- **Revert:** strip the addon's sizing back to the image's original size,
-  at any scope.
-- Works on macOS, Windows, and Linux (right-click on toolbar buttons is
+- **Auto-rescale on paste:** pasted images are sized automatically
+  (toggleable; by width or height).
+- **Revert:** strip the add-on's sizing and return any image to its original
+  display size, at any scope.
+- Works on Windows, macOS, and Linux (right-click on toolbar buttons is
   handled at the Qt level so it works on native macOS toolbars too).
 
 ## Repository layout

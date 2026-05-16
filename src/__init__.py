@@ -1,6 +1,6 @@
 """
 Image Rescaler Addon for Anki
-Granular image resizing with correct scoping.
+Granular image rescaling with correct scoping.
 """
 
 from aqt import mw, gui_hooks
@@ -12,19 +12,45 @@ import re
 import platform
 
 DEFAULT_CONFIG = {
-    "resize_width": 605,
-    "resize_height": 400,
-    "auto_resize_on_paste": True,
-    "auto_resize_mode": "width",
-    "resize_image_mode": "width",
-    "resize_field_mode": "width",
-    "resize_card_mode": "width",
+    "scale_width": 605,
+    "scale_height": 400,
+    "auto_scale_on_paste": True,
+    "auto_scale_mode": "width",
+    "scale_image_mode": "width",
+    "scale_field_mode": "width",
+    "scale_card_mode": "width",
 }
+
+# Older versions used "resize_*" keys. These are mapped to the new "scale_*"
+# names on read so existing users keep their saved settings after updating.
+_LEGACY_KEYS = {
+    "resize_width": "scale_width",
+    "resize_height": "scale_height",
+    "auto_resize_on_paste": "auto_scale_on_paste",
+    "auto_resize_mode": "auto_scale_mode",
+    "resize_image_mode": "scale_image_mode",
+    "resize_field_mode": "scale_field_mode",
+    "resize_card_mode": "scale_card_mode",
+}
+
+_MANUAL_CFG_KEY = "__manual_scale__"
+_LEGACY_MANUAL_CFG_KEY = "__manual_resize__"
+
+
+def _migrate_cfg(raw):
+    """Map legacy resize_* keys onto the new scale_* names (non-destructive)."""
+    migrated = dict(raw)
+    for old, new in _LEGACY_KEYS.items():
+        if old in migrated and new not in migrated:
+            migrated[new] = migrated[old]
+    if _LEGACY_MANUAL_CFG_KEY in migrated and _MANUAL_CFG_KEY not in migrated:
+        migrated[_MANUAL_CFG_KEY] = migrated[_LEGACY_MANUAL_CFG_KEY]
+    return migrated
 
 
 def get_cfg():
-    cfg = mw.addonManager.getConfig(__name__) or {}
-    return {**DEFAULT_CONFIG, **cfg}
+    raw = mw.addonManager.getConfig(__name__) or {}
+    return {**DEFAULT_CONFIG, **_migrate_cfg(raw)}
 
 
 # ── HTML manipulation ──────────────────────────────────────────────────────────
@@ -155,7 +181,7 @@ def get_field_idx(editor):
 # ── Single image operations (uses JS to find which image) ─────────────────────
 
 def do_resize(editor, mode, value):
-    """Resize the single image at the cursor/right-click position."""
+    """Rescale the single image at the cursor/right-click position."""
     def got_src(src):
         note = editor.note
         if not note:
@@ -174,7 +200,7 @@ def do_resize(editor, mode, value):
             # No specific image identified — stamp first one in field
             note.fields[idx] = stamp_first_img(html, mode, value)
         editor.loadNoteKeepingFocus()
-        tooltip("Image resized to {}={}px".format(mode, value))
+        tooltip("Image rescaled to {}={}px".format(mode, value))
     editor.web.evalWithCallback(JS_GET_CURSOR_IMG, got_src)
 
 def do_revert(editor):
@@ -216,7 +242,7 @@ def do_resize_all_in_field(editor, mode, value):
         return
     note.fields[idx] = stamp_all_imgs(html, mode, value)
     editor.loadNoteKeepingFocus()
-    tooltip("All images in field resized to {}={}px".format(mode, value))
+    tooltip("All images in field rescaled to {}={}px".format(mode, value))
 
 def do_revert_all_in_field(editor):
     note = editor.note
@@ -248,7 +274,7 @@ def do_resize_all_in_card(editor, mode, value):
             changed = True
     if changed:
         editor.loadNoteKeepingFocus()
-        tooltip("All images in card resized to {}={}px".format(mode, value))
+        tooltip("All images in card rescaled to {}={}px".format(mode, value))
     else:
         tooltip("No images found in any field.")
 
@@ -340,24 +366,24 @@ def open_settings(editor=None):
 
     # ── Dimensions ──
     section_label("Dimensions")
-    spin_w = add_row("Default width (px):", spinbox(cfg["resize_width"]))
-    spin_h = add_row("Default height (px):", spinbox(cfg["resize_height"]))
+    spin_w = add_row("Default width (px):", spinbox(cfg["scale_width"]))
+    spin_h = add_row("Default height (px):", spinbox(cfg["scale_height"]))
 
     separator()
 
     # ── Button default actions ──
     section_label("Button default actions (left-click)")
-    combo_img_mode  = add_row("'Resize Image' button uses:", combo(["width", "height"], cfg.get("resize_image_mode", "width")))
-    combo_fld_mode  = add_row("'Resize Field' button uses:", combo(["width", "height"], cfg.get("resize_field_mode", "width")))
-    combo_card_mode = add_row("'Resize Card' button uses:",  combo(["width", "height"], cfg.get("resize_card_mode",  "width")))
+    combo_img_mode  = add_row("'Rescale Image' button uses:", combo(["width", "height"], cfg.get("scale_image_mode", "width")))
+    combo_fld_mode  = add_row("'Rescale Field' button uses:", combo(["width", "height"], cfg.get("scale_field_mode", "width")))
+    combo_card_mode = add_row("'Rescale Card' button uses:",  combo(["width", "height"], cfg.get("scale_card_mode",  "width")))
 
     separator()
 
     # ── Paste ──
     section_label("Paste")
-    combo_paste = add_row("Auto-resize on paste by:", combo(["width", "height"], cfg.get("auto_resize_mode", "width")))
-    chk = QCheckBox("Auto-resize images on paste")
-    chk.setChecked(cfg.get("auto_resize_on_paste", True))
+    combo_paste = add_row("Auto-rescale on paste by:", combo(["width", "height"], cfg.get("auto_scale_mode", "width")))
+    chk = QCheckBox("Auto-rescale images on paste")
+    chk.setChecked(cfg.get("auto_scale_on_paste", True))
     layout.addWidget(chk)
 
     separator()
@@ -370,17 +396,17 @@ def open_settings(editor=None):
     layout.addLayout(row_btns)
 
     def save():
-        # Preserve manual-resize memory key while writing main settings
+        # Preserve manual-rescale memory key while writing main settings
         raw = mw.addonManager.getConfig(__name__) or {}
-        manual_mem = raw.get(_MANUAL_CFG_KEY, {})
+        manual_mem = raw.get(_MANUAL_CFG_KEY) or raw.get(_LEGACY_MANUAL_CFG_KEY, {})
         new_cfg = {
-            "resize_width":      spin_w.value(),
-            "resize_height":     spin_h.value(),
-            "auto_resize_mode":  combo_paste.currentText(),
-            "auto_resize_on_paste": chk.isChecked(),
-            "resize_image_mode": combo_img_mode.currentText(),
-            "resize_field_mode": combo_fld_mode.currentText(),
-            "resize_card_mode":  combo_card_mode.currentText(),
+            "scale_width":         spin_w.value(),
+            "scale_height":        spin_h.value(),
+            "auto_scale_mode":     combo_paste.currentText(),
+            "auto_scale_on_paste": chk.isChecked(),
+            "scale_image_mode":    combo_img_mode.currentText(),
+            "scale_field_mode":    combo_fld_mode.currentText(),
+            "scale_card_mode":     combo_card_mode.currentText(),
         }
         if manual_mem:
             new_cfg[_MANUAL_CFG_KEY] = manual_mem
@@ -397,41 +423,41 @@ def open_settings(editor=None):
 
 def show_main_menu(editor):
     cfg = get_cfg()
-    w = cfg["resize_width"]
-    h = cfg["resize_height"]
+    w = cfg["scale_width"]
+    h = cfg["scale_height"]
     menu = QMenu()
 
-    menu.addAction("Image resize settings", lambda: open_settings(editor))
+    menu.addAction("Image rescale settings", lambda: open_settings(editor))
     menu.addSeparator()
 
     # ── Image ──
-    menu.addAction("Resize image (specify size)",
+    menu.addAction("Rescale image (specify size)",
                    lambda: open_manual_resize(editor, scope="image"))
-    menu.addAction("Resize image (width = {} px)".format(w),
+    menu.addAction("Rescale image (width = {} px)".format(w),
                    lambda: do_resize(editor, "width", w))
-    menu.addAction("Resize image (height = {} px)".format(h),
+    menu.addAction("Rescale image (height = {} px)".format(h),
                    lambda: do_resize(editor, "height", h))
     menu.addAction("Revert image to original size",
                    lambda: do_revert(editor))
     menu.addSeparator()
 
     # ── Field ──
-    menu.addAction("Resize all images in field (specify size)",
+    menu.addAction("Rescale all images in field (specify size)",
                    lambda: open_manual_resize(editor, scope="field"))
-    menu.addAction("Resize all images in field (width = {} px)".format(w),
+    menu.addAction("Rescale all images in field (width = {} px)".format(w),
                    lambda: do_resize_all_in_field(editor, "width", w))
-    menu.addAction("Resize all images in field (height = {} px)".format(h),
+    menu.addAction("Rescale all images in field (height = {} px)".format(h),
                    lambda: do_resize_all_in_field(editor, "height", h))
     menu.addAction("Revert all images in field to original size",
                    lambda: do_revert_all_in_field(editor))
     menu.addSeparator()
 
     # ── Card ──
-    menu.addAction("Resize all images in card (specify size)",
+    menu.addAction("Rescale all images in card (specify size)",
                    lambda: open_manual_resize(editor, scope="card"))
-    menu.addAction("Resize all images in card (width = {} px)".format(w),
+    menu.addAction("Rescale all images in card (width = {} px)".format(w),
                    lambda: do_resize_all_in_card(editor, "width", w))
-    menu.addAction("Resize all images in card (height = {} px)".format(h),
+    menu.addAction("Rescale all images in card (height = {} px)".format(h),
                    lambda: do_resize_all_in_card(editor, "height", h))
     menu.addAction("Revert all images in card to original size",
                    lambda: do_revert_all_in_card(editor))
@@ -439,26 +465,26 @@ def show_main_menu(editor):
     menu.exec(QCursor.pos())
 
 
-# ── Manual Resize dialog ───────────────────────────────────────────────────────
-
-_MANUAL_CFG_KEY = "__manual_resize__"
+# ── Manual Rescale dialog ──────────────────────────────────────────────────────
 
 def _get_manual_memory():
-    """Load persisted manual-resize values from addon config (isolated key)."""
+    """Load persisted manual-rescale values from addon config (isolated key)."""
     raw = mw.addonManager.getConfig(__name__) or {}
-    mem = raw.get(_MANUAL_CFG_KEY, {})
+    mem = raw.get(_MANUAL_CFG_KEY) or raw.get(_LEGACY_MANUAL_CFG_KEY, {})
     return {"width": mem.get("width", ""), "height": mem.get("height", "")}
 
 def _save_manual_memory(width, height):
-    """Persist manual-resize values without touching any other config keys."""
+    """Persist manual-rescale values without touching any other config keys."""
     raw = mw.addonManager.getConfig(__name__) or {}
     raw[_MANUAL_CFG_KEY] = {"width": width, "height": height}
+    raw.pop(_LEGACY_MANUAL_CFG_KEY, None)
     mw.addonManager.writeConfig(__name__, raw)
 
 def _clear_manual_memory():
-    """Clear persisted manual-resize values."""
+    """Clear persisted manual-rescale values."""
     raw = mw.addonManager.getConfig(__name__) or {}
     raw.pop(_MANUAL_CFG_KEY, None)
+    raw.pop(_LEGACY_MANUAL_CFG_KEY, None)
     mw.addonManager.writeConfig(__name__, raw)
 
 def open_manual_resize(editor, scope="image"):
@@ -478,7 +504,7 @@ def open_manual_resize(editor, scope="image"):
 
     dlg = QDialog(parent)
     scope_label = {"image": "Image", "field": "All Images in Field", "card": "All Images in Card"}.get(scope, "Image")
-    dlg.setWindowTitle("Manual Resize — {}".format(scope_label))
+    dlg.setWindowTitle("Manual Rescale — {}".format(scope_label))
     dlg.setMinimumWidth(280)
     layout = QVBoxLayout(dlg)
 
@@ -588,7 +614,7 @@ def open_manual_resize(editor, scope="image"):
                 parts.append("width={}px".format(w_text))
             if h_text:
                 parts.append("height={}px".format(h_text))
-            tooltip("Image resized: {}".format(", ".join(parts)))
+            tooltip("Image rescaled: {}".format(", ".join(parts)))
 
         def apply_dimensions_bulk(bulk_scope):
             note = editor.note
@@ -633,7 +659,7 @@ def open_manual_resize(editor, scope="image"):
                 parts.append("width={}px".format(w_text))
             if h_text:
                 parts.append("height={}px".format(h_text))
-            tooltip("Images resized: {}".format(", ".join(parts)))
+            tooltip("Images rescaled: {}".format(", ".join(parts)))
 
         if scope == "image":
             editor.web.evalWithCallback(JS_GET_CURSOR_IMG, apply_dimensions)
@@ -654,26 +680,26 @@ def open_manual_resize(editor, scope="image"):
 # ── Toolbar button right-click menus ──────────────────────────────────────────
 
 def _show_btn_context_menu(editor, scope):
-    """Right-click popup for Resize Image / Resize Field / Resize Card buttons."""
+    """Right-click popup for Rescale Image / Rescale Field / Rescale Card buttons."""
     cfg = get_cfg()
-    w = cfg["resize_width"]
-    h = cfg["resize_height"]
+    w = cfg["scale_width"]
+    h = cfg["scale_height"]
     menu = QMenu()
 
     if scope == "image":
-        menu.addAction("Manual resize", lambda: open_manual_resize(editor, scope="image"))
-        menu.addAction("Resize width to {} px".format(w), lambda: do_resize(editor, "width", w))
-        menu.addAction("Resize height to {} px".format(h), lambda: do_resize(editor, "height", h))
+        menu.addAction("Manual rescale", lambda: open_manual_resize(editor, scope="image"))
+        menu.addAction("Rescale width to {} px".format(w), lambda: do_resize(editor, "width", w))
+        menu.addAction("Rescale height to {} px".format(h), lambda: do_resize(editor, "height", h))
         menu.addAction("Revert image to original size", lambda: do_revert(editor))
     elif scope == "field":
-        menu.addAction("Manual resize", lambda: open_manual_resize(editor, scope="field"))
-        menu.addAction("Resize width to {} px".format(w), lambda: do_resize_all_in_field(editor, "width", w))
-        menu.addAction("Resize height to {} px".format(h), lambda: do_resize_all_in_field(editor, "height", h))
+        menu.addAction("Manual rescale", lambda: open_manual_resize(editor, scope="field"))
+        menu.addAction("Rescale width to {} px".format(w), lambda: do_resize_all_in_field(editor, "width", w))
+        menu.addAction("Rescale height to {} px".format(h), lambda: do_resize_all_in_field(editor, "height", h))
         menu.addAction("Revert all images in field to original size", lambda: do_revert_all_in_field(editor))
     else:
-        menu.addAction("Manual resize", lambda: open_manual_resize(editor, scope="card"))
-        menu.addAction("Resize width to {} px".format(w), lambda: do_resize_all_in_card(editor, "width", w))
-        menu.addAction("Resize height to {} px".format(h), lambda: do_resize_all_in_card(editor, "height", h))
+        menu.addAction("Manual rescale", lambda: open_manual_resize(editor, scope="card"))
+        menu.addAction("Rescale width to {} px".format(w), lambda: do_resize_all_in_card(editor, "width", w))
+        menu.addAction("Rescale height to {} px".format(h), lambda: do_resize_all_in_card(editor, "height", h))
         menu.addAction("Revert all images in card to original size", lambda: do_revert_all_in_card(editor))
 
     menu.addSeparator()
@@ -685,18 +711,18 @@ def _make_scope_click(scope):
     """Return a left-click handler that reads config at call time."""
     def handler(editor):
         cfg = get_cfg()
-        w = cfg["resize_width"]
-        h = cfg["resize_height"]
+        w = cfg["scale_width"]
+        h = cfg["scale_height"]
         if scope == "image":
-            mode = cfg.get("resize_image_mode", "width")
+            mode = cfg.get("scale_image_mode", "width")
             value = w if mode == "width" else h
             do_resize(editor, mode, value)
         elif scope == "field":
-            mode = cfg.get("resize_field_mode", "width")
+            mode = cfg.get("scale_field_mode", "width")
             value = w if mode == "width" else h
             do_resize_all_in_field(editor, mode, value)
         else:
-            mode = cfg.get("resize_card_mode", "width")
+            mode = cfg.get("scale_card_mode", "width")
             value = w if mode == "width" else h
             do_resize_all_in_card(editor, mode, value)
     return handler
@@ -726,43 +752,43 @@ def _attach_right_click(qt_btn, editor, scope):
 # ── Toolbar buttons ────────────────────────────────────────────────────────────
 
 def add_toolbar_button(buttons, editor: Editor):
-    # "Image Resize ▾" dropdown
+    # "Image Rescale ▾" dropdown
     btn_menu = editor.addButton(
         icon="",
         cmd="resize_images_menu",
         func=lambda ed: show_main_menu(ed),
-        tip="Image Resize options",
-        label="Image Resize ▾",
+        tip="Image Rescale options",
+        label="Image Rescale ▾",
     )
     buttons.append(btn_menu)
 
-    # "Resize Image" — left-click per settings; right-click = options menu
+    # "Rescale Image" — left-click per settings; right-click = options menu
     btn_img = editor.addButton(
         icon="",
         cmd="resize_image_btn",
         func=_make_scope_click("image"),
-        tip="Resize image (right-click for options)",
-        label="Resize Image",
+        tip="Rescale image (right-click for options)",
+        label="Rescale Image",
     )
     buttons.append(btn_img)
 
-    # "Resize Field"
+    # "Rescale Field"
     btn_field = editor.addButton(
         icon="",
         cmd="resize_field_btn",
         func=_make_scope_click("field"),
-        tip="Resize all images in field (right-click for options)",
-        label="Resize Field",
+        tip="Rescale all images in field (right-click for options)",
+        label="Rescale Field",
     )
     buttons.append(btn_field)
 
-    # "Resize Card"
+    # "Rescale Card"
     btn_card = editor.addButton(
         icon="",
         cmd="resize_card_btn",
         func=_make_scope_click("card"),
-        tip="Resize all images in card (right-click for options)",
-        label="Resize Card",
+        tip="Rescale all images in card (right-click for options)",
+        label="Rescale Card",
     )
     buttons.append(btn_card)
 
@@ -775,9 +801,9 @@ def add_toolbar_button(buttons, editor: Editor):
     def attach_after_layout():
         from aqt.qt import QPushButton
         label_to_scope = {
-            "Resize Image": "image",
-            "Resize Field": "field",
-            "Resize Card":  "card",
+            "Rescale Image": "image",
+            "Rescale Field": "field",
+            "Rescale Card":  "card",
         }
         # Find the editor's root Qt widget
         try:
@@ -855,16 +881,16 @@ def on_editor_context_menu(web_view, menu):
     if web_view is not editor.web:
         return
 
-    # Normal right-click on note field content — append image resize items
+    # Normal right-click on note field content — append image rescale items
     cfg = get_cfg()
-    w = cfg["resize_width"]
-    h = cfg["resize_height"]
+    w = cfg["scale_width"]
+    h = cfg["scale_height"]
     menu.addSeparator()
-    menu.addAction("Resize image (specify size)",
+    menu.addAction("Rescale image (specify size)",
                    lambda: open_manual_resize(editor, scope="image"))
-    menu.addAction("Resize image (width = {} px)".format(w),
+    menu.addAction("Rescale image (width = {} px)".format(w),
                    lambda: do_resize(editor, "width", w))
-    menu.addAction("Resize image (height = {} px)".format(h),
+    menu.addAction("Rescale image (height = {} px)".format(h),
                    lambda: do_resize(editor, "height", h))
     menu.addAction("Revert image to original size",
                    lambda: do_revert(editor))
@@ -879,14 +905,14 @@ def _processMime_around(self, mime, extended=False, drop_event=False, _old=None)
     # HTML rather than the incoming clipboard mime.
     result = _old(self, mime, extended, drop_event)
     cfg = get_cfg()
-    if not cfg.get("auto_resize_on_paste"):
+    if not cfg.get("auto_scale_on_paste"):
         return result
     if not (isinstance(result, tuple) and len(result) == 2):
         return result
     html, internal = result
     if html and re.search(r'<img\b', html, re.IGNORECASE):
-        mode = cfg.get("auto_resize_mode", "width")
-        value = cfg["resize_width"] if mode == "width" else cfg["resize_height"]
+        mode = cfg.get("auto_scale_mode", "width")
+        value = cfg["scale_width"] if mode == "width" else cfg["scale_height"]
         html = stamp_all_imgs(html, mode, value)
     return html, internal
 

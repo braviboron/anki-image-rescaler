@@ -1,9 +1,9 @@
 {
-    "resize_width": 605,
-    "resize_height": 400,
-    "auto_resize_on_paste": true,
-    "auto_resize_mode": "width",
-    "resize_image_mode": "width",
-    "resize_field_mode": "width",
-    "resize_card_mode": "width"
+    "scale_width": 605,
+    "scale_height": 400,
+    "auto_scale_on_paste": true,
+    "auto_scale_mode": "width",
+    "scale_image_mode": "width",
+    "scale_field_mode": "width",
+    "scale_card_mode": "width"
 }
