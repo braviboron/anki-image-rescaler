@@ -5,7 +5,7 @@ Granular image resizing with correct scoping.
 
 from aqt import mw, gui_hooks
 from aqt.editor import Editor, EditorWebView
-from aqt.qt import QAction, QMimeData, QMenu, QCursor
+from aqt.qt import QAction, QMenu, QCursor
 from aqt.utils import showInfo, tooltip
 from anki.hooks import wrap
 import re
@@ -873,23 +873,22 @@ def on_editor_context_menu(web_view, menu):
 # ── Paste intercept ───────────────────────────────────────────────────────────
 
 def _processMime_around(self, mime, extended=False, drop_event=False, _old=None):
+    # Anki's EditorWebView._processMime returns (html, internal). The <img>
+    # tag for a pasted image/screenshot/file is generated *inside* this call
+    # (clipboard image data has no HTML), so we must rewrite the produced
+    # HTML rather than the incoming clipboard mime.
+    result = _old(self, mime, extended, drop_event)
     cfg = get_cfg()
     if not cfg.get("auto_resize_on_paste"):
-        return _old(self, mime, extended, drop_event)
-    if mime.hasHtml() and re.search(r'<img\b', mime.html(), re.IGNORECASE):
-        mode = cfg["auto_resize_mode"]
+        return result
+    if not (isinstance(result, tuple) and len(result) == 2):
+        return result
+    html, internal = result
+    if html and re.search(r'<img\b', html, re.IGNORECASE):
+        mode = cfg.get("auto_resize_mode", "width")
         value = cfg["resize_width"] if mode == "width" else cfg["resize_height"]
-        stamped_html = stamp_all_imgs(mime.html(), mode, value)
-        new_mime = QMimeData()
-        new_mime.setHtml(stamped_html)
-        if mime.hasText():
-            new_mime.setText(mime.text())
-        if mime.hasUrls():
-            new_mime.setUrls(mime.urls())
-        if mime.hasImage():
-            new_mime.setImageData(mime.imageData())
-        return _old(self, new_mime, extended, drop_event)
-    return _old(self, mime, extended, drop_event)
+        html = stamp_all_imgs(html, mode, value)
+    return html, internal
 
 
 # ── Tools menu ─────────────────────────────────────────────────────────────────
