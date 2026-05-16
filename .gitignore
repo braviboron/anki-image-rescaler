@@ -1,0 +1,16 @@
+# Anki-generated local state (per-install: mod time, enabled flag, etc.)
+meta.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Build output
+dist/
+*.ankiaddon
+
+# macOS
+.DS_Store
+# AppleDouble sidecar files created by macOS on FAT/exFAT volumes
+._*
